@@ -1,0 +1,25 @@
+<project name="folder_check_compare" default="jar" >
+
+    <target name="clean">
+        <delete dir="build"/>
+    </target>
+
+    <target name="compile">
+        <mkdir dir="build/classes"/>
+        <javac srcdir="src" destdir="build/classes" includeantruntime="false"/>
+    </target>
+
+    <target name="jar" depends="compile">
+        <mkdir dir="build/jar"/>
+        <jar destfile="build/jar/jfcc.jar" basedir="build/classes">
+            <manifest>
+                <attribute name="Main-Class" value="jfcc.Comparator"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="run">
+        <java jar="build/jar/jfcc.jar" fork="true"/>
+    </target>
+
+</project>
