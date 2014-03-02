@@ -9,6 +9,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -19,11 +20,21 @@ public class Snapshot {
 	private String snapshotPath = null;
 	private File snapshotFile = null;
 	private Hashtable<String, FileResume>snapshotFiles = null;
+	private ArrayList<String> filesExceptions = null;
 	
 	public Snapshot(String pblockPath){
 		this.snapshotPath = pblockPath;
 		this.snapshotFile= new File(this.snapshotPath);
 		this.snapshotFiles = new Hashtable<String, FileResume>();
+		this.filesExceptions = new ArrayList<String>();
+	}
+	
+	public void setFileExceptions(ArrayList<String> fileExceptions){
+		this.filesExceptions=fileExceptions;
+	}
+	
+	public void addFileException(String newException){
+		this.filesExceptions.add(newException);
 	}
 	
 	public String getPath(){
@@ -44,7 +55,7 @@ public class Snapshot {
 	
 	public void loadSnapshot(){
 		this.snapshotFiles = new Hashtable<String, FileResume>();
-		this.loadSnapshotpFolder(this.snapshotFile,"");
+		this.loadSnapshotpFolder(this.snapshotFile);
 	}
 		
 	public long crcCalculator(String filepath){
@@ -68,18 +79,33 @@ public class Snapshot {
 		return result;
 	}
 	
-	private void loadSnapshotpFolder(final File folder, String relativePath){
-		String keyFolder = folder.getAbsolutePath().replaceFirst(snapshotFile.getAbsolutePath(), "");
+	/**
+	 * getRelativePath: Get the path relative to the initial snapshot path;
+	 * Windows file separator is not compatible with regex operations. file separator is changed for "/"
+	 * @param absolutePath
+	 * @return String
+	 */
+	private String getRelativePath(String absolutePath){
+		String result = "";
+		String pathInitial = this.snapshotFile.getAbsolutePath().replace(File.separator, "/");
+		String pathCurrent = absolutePath.replace(File.separator, "/");
+		result = pathCurrent.replaceFirst(pathInitial, "");
+		return result;
+	}
+			
+	private void loadSnapshotpFolder(final File folder){
+		String keyFolder = getRelativePath(folder.getAbsolutePath());
 		FileResume oFolderResume = new FileResume(keyFolder, FileResume.TYPE_FOLDER);
 		oFolderResume.setAbsolutePath(folder.getAbsolutePath());
 		this.snapshotFiles.put(keyFolder, oFolderResume);
 		
-		relativePath += "/" + folder.getName();
 	    for (final File fileEntry : folder.listFiles()) {
+	    	if(filesExceptions.contains(fileEntry.getName())) continue;
+	    	
 	        if (fileEntry.isDirectory()) {
-	        	loadSnapshotpFolder(fileEntry,relativePath);
+	        	loadSnapshotpFolder(fileEntry);
 	        } else {
-	    		String keyFile = fileEntry.getAbsolutePath().replaceFirst(snapshotFile.getAbsolutePath(), "");
+	    		String keyFile = getRelativePath(fileEntry.getAbsolutePath());
 	    		FileResume oFileResume = new FileResume(keyFile, FileResume.TYPE_FILE);
 	    		oFileResume.setAbsolutePath(fileEntry.getAbsolutePath());
 	 
@@ -98,8 +124,7 @@ public class Snapshot {
 		   }
 		}
 	}
-	
-	
+		
 	public void show(){
 		Iterator<String> keySetIterator = this.snapshotFiles.keySet().iterator();
 		while (keySetIterator.hasNext()) {
@@ -165,6 +190,7 @@ public class Snapshot {
 		String sPath = "/Users/Andres/Documents/workspace/csvfix";
 		//String sPath = "/Users/Andres/Documents/workspace";
 		Snapshot oSnapshot = new Snapshot(sPath);
+		oSnapshot.addFileException("build");
 		oSnapshot.loadSnapshot();
 		oSnapshot.refreshSnapshotCRC32();
 		oSnapshot.show();

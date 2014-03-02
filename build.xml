@@ -1,4 +1,4 @@
-<project name="folder_check_compare" default="jar" >
+<project name="folder_check_compare" default="distribution" >
 
     <target name="clean">
         <delete dir="build"/>
@@ -9,7 +9,8 @@
         <javac srcdir="src" destdir="build/classes" includeantruntime="false"/>
     </target>
 
-    <target name="jar" depends="compile">
+	<!-- Create distribution file -->
+    <target name="distribution" depends="compile">
         <mkdir dir="build/jar"/>
         <jar destfile="build/jar/jfcc.jar" basedir="build/classes">
             <manifest>

@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 
@@ -12,15 +13,26 @@ public class Comparator {
 
 	private Snapshot origin = null;
 	private Snapshot destination = null;
+	private ArrayList<String> filesExceptions = null;
 	
 	public Comparator(String pathOrigen, String pathDestino){
+		this.filesExceptions = new ArrayList<String>();
+
 		this.origin = new Snapshot(pathOrigen);
-		origin.loadSnapshot();
-		origin.refreshSnapshotCRC32();
-		
 		this.destination = new Snapshot(pathDestino);
-		destination.loadSnapshot();
-		destination.refreshSnapshotCRC32();
+	}
+	
+	public void addFileException(String newException){
+		this.filesExceptions.add(newException);
+	}
+	
+	public void execute(){
+		this.origin.setFileExceptions(this.filesExceptions);
+		this.origin.loadSnapshot();
+		this.origin.refreshSnapshotCRC32();
+		this.destination.setFileExceptions(this.filesExceptions);
+		this.destination.loadSnapshot();
+		this.destination.refreshSnapshotCRC32();
 	}
 	
 	public void report(){
@@ -203,6 +215,10 @@ public class Comparator {
 			destino = args[1];
 			
 			Comparator oComparator = new Comparator(origen, destino);
+			//add file exceptions
+			oComparator.addFileException(".svn"); //svn folder
+			
+			oComparator.execute();
 			oComparator.report();
 			//oComparator.export();
 			
