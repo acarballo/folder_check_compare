@@ -20,21 +20,21 @@ public class Snapshot {
 	private String snapshotPath = null;
 	private File snapshotFile = null;
 	private Hashtable<String, FileResume>snapshotFiles = null;
-	private ArrayList<String> filesExceptions = null;
+	private ArrayList<String> filesIgnored = null;
 	
 	public Snapshot(String pblockPath){
 		this.snapshotPath = pblockPath;
 		this.snapshotFile= new File(this.snapshotPath);
 		this.snapshotFiles = new Hashtable<String, FileResume>();
-		this.filesExceptions = new ArrayList<String>();
+		this.filesIgnored = new ArrayList<String>();
 	}
 	
-	public void setFileExceptions(ArrayList<String> fileExceptions){
-		this.filesExceptions=fileExceptions;
+	public void setFilesIgnored(ArrayList<String> filesIgnored){
+		this.filesIgnored=filesIgnored;
 	}
 	
-	public void addFileException(String newException){
-		this.filesExceptions.add(newException);
+	public void addFileIgnored(String newFileIgnored){
+		this.filesIgnored.add(newFileIgnored);
 	}
 	
 	public String getPath(){
@@ -100,7 +100,7 @@ public class Snapshot {
 		this.snapshotFiles.put(keyFolder, oFolderResume);
 		
 	    for (final File fileEntry : folder.listFiles()) {
-	    	if(filesExceptions.contains(fileEntry.getName())) continue;
+	    	if(this.filesIgnored.contains(fileEntry.getName())) continue;
 	    	
 	        if (fileEntry.isDirectory()) {
 	        	loadSnapshotpFolder(fileEntry);
@@ -190,7 +190,7 @@ public class Snapshot {
 		String sPath = "/Users/Andres/Documents/workspace/csvfix";
 		//String sPath = "/Users/Andres/Documents/workspace";
 		Snapshot oSnapshot = new Snapshot(sPath);
-		oSnapshot.addFileException("build");
+		oSnapshot.addFileIgnored("build");
 		oSnapshot.loadSnapshot();
 		oSnapshot.refreshSnapshotCRC32();
 		oSnapshot.show();

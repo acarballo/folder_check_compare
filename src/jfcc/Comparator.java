@@ -13,24 +13,24 @@ public class Comparator {
 
 	private Snapshot origin = null;
 	private Snapshot destination = null;
-	private ArrayList<String> filesExceptions = null;
+	private ArrayList<String> filesIgnored = null;
 	
 	public Comparator(String pathOrigen, String pathDestino){
-		this.filesExceptions = new ArrayList<String>();
+		this.filesIgnored = new ArrayList<String>();
 
 		this.origin = new Snapshot(pathOrigen);
 		this.destination = new Snapshot(pathDestino);
 	}
 	
-	public void addFileException(String newException){
-		this.filesExceptions.add(newException);
+	public void addFileIgnored(String newFileIgnored){
+		this.filesIgnored.add(newFileIgnored);
 	}
 	
 	public void execute(){
-		this.origin.setFileExceptions(this.filesExceptions);
+		this.origin.setFilesIgnored(this.filesIgnored);
 		this.origin.loadSnapshot();
 		this.origin.refreshSnapshotCRC32();
-		this.destination.setFileExceptions(this.filesExceptions);
+		this.destination.setFilesIgnored(this.filesIgnored);
 		this.destination.loadSnapshot();
 		this.destination.refreshSnapshotCRC32();
 	}
@@ -216,7 +216,7 @@ public class Comparator {
 			
 			Comparator oComparator = new Comparator(origen, destino);
 			//add file exceptions
-			oComparator.addFileException(".svn"); //svn folder
+			oComparator.addFileIgnored(".svn"); //svn folder
 			
 			oComparator.execute();
 			oComparator.report();

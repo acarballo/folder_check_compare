@@ -5,6 +5,7 @@ import java.awt.event.WindowListener;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 
 public class Console extends JFrame implements WindowListener{
 
@@ -18,10 +19,17 @@ public class Console extends JFrame implements WindowListener{
 		this.setTitle("Folder Check Compare "+Config.VERSION);
 		this.setSize(300, 200);
 		this.setLocationRelativeTo(null);
+		this.setLayout(null);
+		this.setContentPane(getMainPanel());
+	}	
+	
+	private JPanel getMainPanel(){
+		JPanel oJPanel = new JPanel();
 		
-		JLabel olabel = new JLabel("Only command version: jfcc.jar [folder] [folder]", JLabel.CENTER);
-		this.add(olabel);
-
+		JLabel olabel = new JLabel("Only command version: jfcc.jar [folder] [folder]");
+		oJPanel.add(olabel);
+		
+		return oJPanel;
 	}
 	
 	@Override
