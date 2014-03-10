@@ -8,8 +8,9 @@ import java.awt.event.WindowListener;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
+
+import jfcc.ui.CustomLabel;
 
 public class Console extends JFrame implements WindowListener, ActionListener{
 
@@ -32,7 +33,7 @@ public class Console extends JFrame implements WindowListener, ActionListener{
 	private JPanel getMainPanel(){
 		JPanel oJPanel = new JPanel();
 		
-		JLabel olabel = new JLabel("Command version: jfcc.jar [folder] [folder]");
+		CustomLabel olabel = new CustomLabel("Command version: jfcc.jar [folder] [folder]");
 		
 		oJPanel.add(olabel);
 		oJPanel.add(getSearchFolder());
