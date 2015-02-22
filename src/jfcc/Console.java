@@ -1,5 +1,7 @@
 package jfcc;
 
+import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
@@ -24,7 +26,7 @@ public class Console extends JFrame implements WindowListener, ActionListener{
 	public Console(){
 		this.addWindowListener(this);
 		this.setTitle("Folder Check Compare "+Config.VERSION);
-		this.setSize(300, 200);
+		this.setSize(640, 480);
 		this.setLocationRelativeTo(null);
 		this.setLayout(null);
 		this.setContentPane(getMainPanel());
@@ -32,14 +34,22 @@ public class Console extends JFrame implements WindowListener, ActionListener{
 	
 	private JPanel getMainPanel(){
 		JPanel oJPanel = new JPanel();
+		oJPanel.setLayout(null);
+		//oJPanel.setBounds(1, 1, 640, 300);
+		//oJPanel.setBorder(new BevelBorder(BevelBorder.LOWERED));
+		oJPanel.setBackground(Color.lightGray);
+		//oJPanel.setPreferredSize(new Dimension(640, 300));
 		
 		CustomLabel olabel = new CustomLabel("Command version: jfcc.jar [folder] [folder]");
+		olabel.setBounds(10, 20, 200, 80);
 		
 		oJPanel.add(olabel);
 		oJPanel.add(getSearchFolder());
 		
 		return oJPanel;
 	}
+	
+	
 	
 	private JButton getSearchFolder(){
 		if(this.oSearchFolder == null){
