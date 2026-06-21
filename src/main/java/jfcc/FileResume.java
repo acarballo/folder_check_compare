@@ -13,8 +13,6 @@ import java.io.Writer;
 import java.util.Scanner;
 import java.util.zip.CRC32;
 
-import sun.misc.IOUtils;
-
 public class FileResume {
 
 	private String name = null;

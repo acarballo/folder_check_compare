@@ -1,3 +1,13 @@
-#Class folder ignored
+# Maven
+/target
+
+# Old Ant build (kept for reference until fully removed)
 /bin
 /build
+
+# IDEs
+.idea
+*.iml
+.classpath
+.project
+.settings
