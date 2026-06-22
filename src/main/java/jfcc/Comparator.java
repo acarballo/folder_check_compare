@@ -1,234 +1,111 @@
 package jfcc;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
+import java.io.PrintWriter;
 import java.util.Date;
-import java.util.Iterator;
 
-public class Comparator {
+public class Comparator extends AbstractTool {
 
-	private Snapshot origin = null;
-	private Snapshot destination = null;
-	private ArrayList<String> filesIgnored = null;
-	
-	public Comparator(String pathOrigen, String pathDestino){
-		this.filesIgnored = new ArrayList<String>();
+	private final Snapshot destination;
 
-		this.origin = new Snapshot(pathOrigen);
+	public Comparator(String pathOrigen, String pathDestino) {
+		super(pathOrigen);
 		this.destination = new Snapshot(pathDestino);
 	}
-	
-	public void addFileIgnored(String newFileIgnored){
-		this.filesIgnored.add(newFileIgnored);
-	}
-	
-	public void execute(){
-		this.origin.setFilesIgnored(this.filesIgnored);
-		this.origin.loadSnapshot();
+
+	@Override
+	public void execute() {
+		super.execute();
+		loadSnapshot(this.destination);
 		this.origin.refreshSnapshotCRC32();
-		this.destination.setFilesIgnored(this.filesIgnored);
-		this.destination.loadSnapshot();
 		this.destination.refreshSnapshotCRC32();
 	}
-	
-	public void report(){
-		long count_modified = 0;
-		long count_new = 0;
-		long count_deleted = 0;
-		
-		System.out.println("Origin Folder:"+this.origin.getPath());
-		System.out.println("Origin Elements:"+this.origin.getNumElements());
-		System.out.println("Destination Folder:"+this.destination.getPath());
-		System.out.println("Destination Elements:"+this.destination.getNumElements());
-				
+
+	@Override
+	protected String exportFilePrefix() {
+		return "report";
+	}
+
+	@Override
+	protected void writeReport(PrintWriter out) {
+		long countModified = 0;
+		long countNew = 0;
+		long countDeleted = 0;
+
+		out.println("Origin Folder:" + this.origin.getPath());
+		out.println("Origin Elements:" + this.origin.getNumElements());
+		out.println("Destination Folder:" + this.destination.getPath());
+		out.println("Destination Elements:" + this.destination.getNumElements());
+
 		//check updated files
-		System.out.println("");
-		System.out.println("Check modified elements");
-		System.out.println("=======================");
-		Iterator<String> keySetIterator = this.origin.getAll().keySet().iterator();
-		while (keySetIterator.hasNext()) {
-			String key = keySetIterator.next();
-			FileResume oFileResumeOrigin = this.origin.getAll().get(key);
-			if(oFileResumeOrigin.getType()==FileResume.TYPE_FILE){
-				FileResume oFileResumeDestination = this.destination.getAll().get(key);
-				if(oFileResumeDestination!=null && 
-					   oFileResumeOrigin.getCrc32()!=oFileResumeDestination.getCrc32()){
-					count_modified+=1;
-					System.out.println(oFileResumeOrigin.getName());	   
+		out.println();
+		out.println("Check modified elements");
+		out.println("=======================");
+		for (String key : this.origin.getAll().keySet()) {
+			FileResume originResume = this.origin.getAll().get(key);
+			if (originResume.getType() == FileResume.TYPE_FILE) {
+				FileResume destinationResume = this.destination.getAll().get(key);
+				if (destinationResume != null && originResume.getCrc32() != destinationResume.getCrc32()) {
+					countModified++;
+					out.println(originResume.getName());
 				}
 			}
 		}
-		System.out.println("modified elements:"+count_modified);
-				
+		out.println("modified elements:" + countModified);
+
 		//check new files
-		System.out.println("");
-		System.out.println("Check new elements (Only Origin)");
-		System.out.println("================================");
-		keySetIterator = this.origin.getAll().keySet().iterator();
-		while (keySetIterator.hasNext()) {
-			String key = keySetIterator.next();
-			FileResume oFileResumeOrigin = this.origin.getAll().get(key);
-			FileResume oFileResumeDestination = this.destination.getAll().get(key);
-			if(oFileResumeDestination==null){
-				count_new+=1;
-				System.out.println(oFileResumeOrigin.getName());	   
+		out.println();
+		out.println("Check new elements (Only Origin)");
+		out.println("================================");
+		for (String key : this.origin.getAll().keySet()) {
+			FileResume originResume = this.origin.getAll().get(key);
+			FileResume destinationResume = this.destination.getAll().get(key);
+			if (destinationResume == null) {
+				countNew++;
+				out.println(originResume.getName());
 			}
-		}		
-		System.out.println("new elements:"+count_new);		
-				
+		}
+		out.println("new elements:" + countNew);
+
 		//check deleted files
-		System.out.println("");
-		System.out.println("Check deleted elements (Only Destination)");
-		System.out.println("=========================================");
-		keySetIterator = this.destination.getAll().keySet().iterator();
-		while (keySetIterator.hasNext()) {
-			String key = keySetIterator.next();
-			FileResume oFileResumeDestination = this.destination.getAll().get(key);
-			FileResume oFileResumeOrigin = this.origin.getAll().get(key);
-			if(oFileResumeOrigin==null){
-				count_deleted+=1;
-				System.out.println(oFileResumeDestination.getName());	   
-			}
-		}		
-		System.out.println("deleted elements:"+count_deleted);
-		System.out.println("");
-		
-	}
-	
-	public void export(){
-		long count_modified = 0;
-		long count_new = 0;
-		long count_deleted = 0;
-		
-		SimpleDateFormat oSimpleDateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
-	    String timeLog = oSimpleDateFormat.format(new Date());
-	    String exportFilename = "report_"+timeLog+".txt";
-	    
-		File ofile = new File(exportFilename);
-		if (!ofile.exists()) {
-			try {
-				ofile.createNewFile();
-			} catch (IOException e) {
-				e.printStackTrace();
+		out.println();
+		out.println("Check deleted elements (Only Destination)");
+		out.println("=========================================");
+		for (String key : this.destination.getAll().keySet()) {
+			FileResume destinationResume = this.destination.getAll().get(key);
+			FileResume originResume = this.origin.getAll().get(key);
+			if (originResume == null) {
+				countDeleted++;
+				out.println(destinationResume.getName());
 			}
 		}
-		
-		try {
-			FileWriter oFileWriter = new FileWriter(ofile.getAbsoluteFile());
-			BufferedWriter oBufferedWriter = new BufferedWriter(oFileWriter);
-			
-			//Head
-			oBufferedWriter.write("Origin Folder:"+this.origin.getPath());
-			oBufferedWriter.newLine();
-			oBufferedWriter.write("Origin Elements:"+this.origin.getNumElements());
-			oBufferedWriter.newLine();
-			oBufferedWriter.write("Destination Folder:"+this.destination.getPath());
-			oBufferedWriter.newLine();
-			oBufferedWriter.write("Destination Elements:"+this.destination.getNumElements());
-			oBufferedWriter.newLine();
-			
-			//check updated files
-			oBufferedWriter.newLine();
-			oBufferedWriter.write("Check modified elements");
-			oBufferedWriter.newLine();
-			oBufferedWriter.write("=======================");
-			oBufferedWriter.newLine();
-			Iterator<String> keySetIterator = this.origin.getAll().keySet().iterator();
-			while (keySetIterator.hasNext()) {
-				String key = keySetIterator.next();
-				FileResume oFileResumeOrigin = this.origin.getAll().get(key);
-				if(oFileResumeOrigin.getType()==FileResume.TYPE_FILE){
-					FileResume oFileResumeDestination = this.destination.getAll().get(key);
-					if(oFileResumeDestination!=null && 
-						   oFileResumeOrigin.getCrc32()!=oFileResumeDestination.getCrc32()){
-						count_modified+=1;
-						oBufferedWriter.write(oFileResumeOrigin.getName());	
-						oBufferedWriter.newLine();
-					}
-				}
-			}
-			oBufferedWriter.write("modified elements:"+count_modified);
-			oBufferedWriter.newLine();
-					
-			//check new files
-			oBufferedWriter.newLine();
-			oBufferedWriter.write("Check new elements (Only Origin)");
-			oBufferedWriter.newLine();
-			oBufferedWriter.write("================================");
-			oBufferedWriter.newLine();
-			keySetIterator = this.origin.getAll().keySet().iterator();
-			while (keySetIterator.hasNext()) {
-				String key = keySetIterator.next();
-				FileResume oFileResumeOrigin = this.origin.getAll().get(key);
-				FileResume oFileResumeDestination = this.destination.getAll().get(key);
-				if(oFileResumeDestination==null){
-					count_new+=1;
-					oBufferedWriter.write(oFileResumeOrigin.getName());
-					oBufferedWriter.newLine();
-				}
-			}		
-			oBufferedWriter.write("new elements:"+count_new);
-			oBufferedWriter.newLine();
-					
-			//check deleted files
-			oBufferedWriter.newLine();
-			oBufferedWriter.write("Check deleted elements (Only Destination)");
-			oBufferedWriter.newLine();
-			oBufferedWriter.write("=========================================");
-			oBufferedWriter.newLine();
-			keySetIterator = this.destination.getAll().keySet().iterator();
-			while (keySetIterator.hasNext()) {
-				String key = keySetIterator.next();
-				FileResume oFileResumeDestination = this.destination.getAll().get(key);
-				FileResume oFileResumeOrigin = this.origin.getAll().get(key);
-				if(oFileResumeOrigin==null){
-					count_deleted+=1;
-					oBufferedWriter.write(oFileResumeDestination.getName());
-					oBufferedWriter.newLine();
-				}
-			}		
-			oBufferedWriter.write("deleted elements:"+count_deleted);
-			oBufferedWriter.newLine();		
-			
-			oBufferedWriter.close();
-			oFileWriter.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		out.println("deleted elements:" + countDeleted);
+		out.println();
 	}
-	
+
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
 		Date oInicio = new Date();
-		
-		String origen="";
-		String destino="";
-		
-		if(args.length >= 2){
-			origen = args[0];
-			destino = args[1];
-			
+
+		if (args.length >= 2) {
+			String origen = args[0];
+			String destino = args[1];
+
 			Comparator oComparator = new Comparator(origen, destino);
 			//add file exceptions
 			oComparator.addFileIgnored(".svn"); //svn folder
-			
+
 			oComparator.execute();
 			oComparator.report();
 			//oComparator.export();
-			
+
 		} else {
 			System.out.println("usage: jfcc.Comparator [origen] [destino]");
 		}
-		
-		Date oFin = new Date();
-		System.out.println("End proces time "+(oFin.getTime()-oInicio.getTime())+"ms");
 
+		Date oFin = new Date();
+		System.out.println("End proces time " + (oFin.getTime() - oInicio.getTime()) + "ms");
 	}
 
 }
