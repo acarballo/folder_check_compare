@@ -64,6 +64,7 @@ public abstract class AbstractTool {
 
 	public void report() {
 		PrintWriter out = new PrintWriter(new OutputStreamWriter(System.out), true);
+		printHeader(out);
 		writeReport(out);
 		out.flush();
 	}
@@ -74,10 +75,15 @@ public abstract class AbstractTool {
 		File file = new File(exportFilePrefix() + "_" + timeLog + ".txt");
 
 		try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(file)))) {
+			printHeader(out);
 			writeReport(out);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	private void printHeader(PrintWriter out) {
+		out.println("jfcc v" + Version.VALUE);
 	}
 
 }

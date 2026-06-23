@@ -53,6 +53,8 @@
           <archive>
             <manifest>
               <mainClass>${mainClass}</mainClass>
+              <!-- Escribe Implementation-Version en el MANIFEST.MF con el valor de <version> del pom -->
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
             </manifest>
           </archive>
         </configuration>
