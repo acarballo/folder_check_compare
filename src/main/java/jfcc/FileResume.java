@@ -1,13 +1,9 @@
 package jfcc;
 
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Scanner;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.zip.CRC32;
 
 public class FileResume {
@@ -16,98 +12,77 @@ public class FileResume {
 	private int type = 0;
 	private String absolutePath = null;
 	private long crc32 = 0;
-	
-	public static int TYPE_FILE = 1;
-	public static int TYPE_FOLDER = 2;
-	
-	public FileResume(String name, int type){
+
+	// Bug 5 fix: static final para que no puedan modificarse desde fuera
+	public static final int TYPE_FILE = 1;
+	public static final int TYPE_FOLDER = 2;
+
+	public FileResume(String name, int type) {
 		this.setName(name);
 		this.setType(type);
 	}
-	
-	public void refreshCRC32(){
+
+	/**
+	 * Bug 7 fix: leia byte a byte; ahora usa un buffer de 8KB.
+	 * La logica es identica (mismo CRC32), solo mas rapido con ficheros grandes.
+	 */
+	public void refreshCRC32() {
 		long result = -1;
 		try {
-			FileInputStream oFileInputStream = new FileInputStream(this.absolutePath);
-			InputStream oInputStream = new BufferedInputStream(oFileInputStream);
 			CRC32 crc = new CRC32();
-			int cnt;
-			while ((cnt = oInputStream.read()) != -1) {
-				crc.update(cnt);
+			byte[] buf = new byte[8192];
+			int n;
+			try (var in = Files.newInputStream(Path.of(this.absolutePath))) {
+				while ((n = in.read(buf)) != -1) {
+					crc.update(buf, 0, n);
+				}
 			}
-			oInputStream.close();
 			result = crc.getValue();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
 		this.crc32 = result;
 	}
-	
-	public boolean search(String searchString){
-		boolean result = false;
-		
-        Scanner oScanner = null;
-        try {
-        	oScanner = new Scanner(new FileReader(this.absolutePath));
-            while(oScanner.hasNextLine() && !result) {
-                result = oScanner.nextLine().indexOf(searchString) >= 0;
-            }
-            oScanner.close();
-        }
-        catch(IOException e) {
-            e.printStackTrace();      
-        }
-		
-		return result;
-	}
-	
-	public boolean replace(String searchString, String replaceString){
-		boolean result = false;
-		
-		try {
-			FileInputStream oFileInputStream = new FileInputStream(this.absolutePath);
-			InputStream oInputStream = new BufferedInputStream(oFileInputStream);
-			
-			int cnt;
-			String content = "";
-			while ((cnt = oInputStream.read()) != -1) {
-				content+=(char)cnt; 
-			}
-			oInputStream.close();
-			content = content.replaceAll(searchString, replaceString);
 
-			//System.out.println(content);
-			
-            FileWriter writer = new FileWriter(this.absolutePath);
-            writer.write(content);
-            writer.close();
-            result = true;
-			
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+	/**
+	 * Busca la cadena en el contenido del fichero.
+	 * Se lee en UTF-8 para manejar correctamente acentos y caracteres no-ASCII.
+	 */
+	public boolean search(String searchString) {
+		try {
+			String content = Files.readString(Path.of(this.absolutePath), StandardCharsets.UTF_8);
+			return content.contains(searchString);
 		} catch (IOException e) {
 			e.printStackTrace();
+			return false;
 		}
-		
-		return result;
 	}
-	
-	public String getExtension(){
-		String extension = null;
-		
-		if(this.getType()==FileResume.TYPE_FILE){
-			int i = this.absolutePath.lastIndexOf('.');
-			if (i > 0) {
-			    extension = this.absolutePath.substring(i+1);
-			}
-		}
 
-		return extension;
+	/**
+	 * Bug 1 fix: usaba replaceAll (regex); ahora usa replace (texto literal).
+	 * Bug 2 fix: leia bytes como chars, corrompiendo UTF-8; ahora usa Files.readString/writeString.
+	 */
+	public boolean replace(String searchString, String replaceString) {
+		try {
+			Path path = Path.of(this.absolutePath);
+			String content = Files.readString(path, StandardCharsets.UTF_8);
+			String replaced = content.replace(searchString, replaceString);
+			Files.writeString(path, replaced, StandardCharsets.UTF_8);
+			return true;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
 	}
-	
+
+	public String getExtension() {
+		if (this.getType() != FileResume.TYPE_FILE) {
+			return null;
+		}
+		int i = this.absolutePath.lastIndexOf('.');
+		return i > 0 ? this.absolutePath.substring(i + 1) : null;
+	}
+
 	public String getName() {
 		return name;
 	}

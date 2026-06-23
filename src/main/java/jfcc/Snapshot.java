@@ -1,204 +1,102 @@
 package jfcc;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.zip.CRC32;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class Snapshot {
 
-	private String snapshotPath = null;
-	private File snapshotFile = null;
-	private Hashtable<String, FileResume>snapshotFiles = null;
-	private ArrayList<String> filesIgnored = null;
-	
-	public Snapshot(String pblockPath){
-		this.snapshotPath = pblockPath;
-		this.snapshotFile= new File(this.snapshotPath);
-		this.snapshotFiles = new Hashtable<String, FileResume>();
-		this.filesIgnored = new ArrayList<String>();
+	private final String snapshotPath;
+	private final File snapshotFile;
+	// Bug 6 fix: Hashtable → LinkedHashMap (no necesita sincronizacion; ademas
+	// preserva el orden de insercion, por lo que los informes salen siempre en
+	// el mismo orden)
+	private Map<String, FileResume> snapshotFiles;
+	private ArrayList<String> filesIgnored;
+
+	public Snapshot(String path) {
+		this.snapshotPath = path;
+		this.snapshotFile = new File(path);
+		this.snapshotFiles = new LinkedHashMap<>();
+		this.filesIgnored = new ArrayList<>();
 	}
-	
-	public void setFilesIgnored(ArrayList<String> filesIgnored){
-		this.filesIgnored=filesIgnored;
+
+	public void setFilesIgnored(ArrayList<String> filesIgnored) {
+		this.filesIgnored = filesIgnored;
 	}
-	
-	public void addFileIgnored(String newFileIgnored){
+
+	public void addFileIgnored(String newFileIgnored) {
 		this.filesIgnored.add(newFileIgnored);
 	}
-	
-	public String getPath(){
+
+	public String getPath() {
 		return this.snapshotPath;
 	}
-	
-	public Hashtable<String, FileResume> getAll(){
+
+	public Map<String, FileResume> getAll() {
 		return this.snapshotFiles;
 	}
-	
-	public long getNumElements(){
-		long result = 0;
-		if(this.snapshotFiles!=null){
-			result = this.snapshotFiles.size();
-		}
-		return result;
+
+	public long getNumElements() {
+		return this.snapshotFiles.size();
 	}
-	
-	public void loadSnapshot(){
-		this.snapshotFiles = new Hashtable<String, FileResume>();
-		this.loadSnapshotpFolder(this.snapshotFile);
+
+	public void loadSnapshot() {
+		this.snapshotFiles = new LinkedHashMap<>();
+		this.loadSnapshotFolder(this.snapshotFile);
 	}
-		
-	public long crcCalculator(String filepath){
-		long result = -1;
-		try {
-			FileInputStream oFileInputStream = new FileInputStream(filepath);
-			InputStream oInputStream = new BufferedInputStream(oFileInputStream);
-			CRC32 crc = new CRC32();
-			int cnt;
-			while ((cnt = oInputStream.read()) != -1) {
-				crc.update(cnt);
-			}
-			oInputStream.close();
-			result = crc.getValue();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		return result;
-	}
-	
+
 	/**
-	 * getRelativePath: Get the path relative to the initial snapshot path;
-	 * Windows file separator is not compatible with regex operations. file separator is changed for "/"
-	 * @param absolutePath
-	 * @return String
+	 * Bug 4 fix: usaba replaceFirst() interpretando la ruta como regex; una
+	 * ruta con parentesis o corchetes (ej. "Proyecto (copia)") romperia el
+	 * matching. Ahora usa startsWith/substring, que es puramente textual.
+	 *
+	 * Nota: se normaliza el separador a "/" para compatibilidad con Windows,
+	 * igual que antes.
 	 */
-	private String getRelativePath(String absolutePath){
-		String result = "";
-		String pathInitial = this.snapshotFile.getAbsolutePath().replace(File.separator, "/");
-		String pathCurrent = absolutePath.replace(File.separator, "/");
-		result = pathCurrent.replaceFirst(pathInitial, "");
-		return result;
+	private String getRelativePath(String absolutePath) {
+		String base = this.snapshotFile.getAbsolutePath().replace(File.separator, "/");
+		String current = absolutePath.replace(File.separator, "/");
+		return current.startsWith(base) ? current.substring(base.length()) : current;
 	}
-			
-	private void loadSnapshotpFolder(final File folder){
+
+	/**
+	 * Bug 3 fix: folder.listFiles() puede devolver null si la carpeta no
+	 * tiene permisos de lectura; el for-each lanzaria NullPointerException.
+	 */
+	private void loadSnapshotFolder(final File folder) {
 		String keyFolder = getRelativePath(folder.getAbsolutePath());
-		FileResume oFolderResume = new FileResume(keyFolder, FileResume.TYPE_FOLDER);
-		oFolderResume.setAbsolutePath(folder.getAbsolutePath());
-		this.snapshotFiles.put(keyFolder, oFolderResume);
-		
-	    for (final File fileEntry : folder.listFiles()) {
-	    	if(this.filesIgnored.contains(fileEntry.getName())) continue;
-	    	
-	        if (fileEntry.isDirectory()) {
-	        	loadSnapshotpFolder(fileEntry);
-	        } else {
-	    		String keyFile = getRelativePath(fileEntry.getAbsolutePath());
-	    		FileResume oFileResume = new FileResume(keyFile, FileResume.TYPE_FILE);
-	    		oFileResume.setAbsolutePath(fileEntry.getAbsolutePath());
-	 
-	    		this.snapshotFiles.put(keyFile, oFileResume);
-	        }
-	    }	
-	}
-	
-	public void refreshSnapshotCRC32(){
-		Iterator<String> keySetIterator = this.snapshotFiles.keySet().iterator();
-		while (keySetIterator.hasNext()) {
-		   String key = keySetIterator.next();
-		   FileResume oFileResume = this.snapshotFiles.get(key);
-		   if(oFileResume.getType()==FileResume.TYPE_FILE){
-			   oFileResume.refreshCRC32();
-		   }
+		FileResume folderResume = new FileResume(keyFolder, FileResume.TYPE_FOLDER);
+		folderResume.setAbsolutePath(folder.getAbsolutePath());
+		this.snapshotFiles.put(keyFolder, folderResume);
+
+		File[] entries = folder.listFiles();
+		if (entries == null) {
+			// sin permisos de lectura: se registra la carpeta pero se omite su contenido
+			return;
 		}
-	}
-		
-	public void show(){
-		Iterator<String> keySetIterator = this.snapshotFiles.keySet().iterator();
-		while (keySetIterator.hasNext()) {
-		   String key = keySetIterator.next();
-		   FileResume oFileResume = this.snapshotFiles.get(key);
-		   System.out.println("key: " + key + " value: " + oFileResume.getCrc32());
-		}
-		System.out.println(this.snapshotFiles.size());
-	}
-	
-	public void export(){
-		SimpleDateFormat oSimpleDateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
-	    String timeLog = oSimpleDateFormat.format(new Date());
-	    String exportFilename = "snapshot_"+timeLog+".txt";
-	    
-		File ofile = new File(exportFilename);
-		if (!ofile.exists()) {
-			try {
-				ofile.createNewFile();
-			} catch (IOException e) {
-				e.printStackTrace();
+
+		for (File entry : entries) {
+			if (this.filesIgnored.contains(entry.getName())) continue;
+
+			if (entry.isDirectory()) {
+				loadSnapshotFolder(entry);
+			} else {
+				String keyFile = getRelativePath(entry.getAbsolutePath());
+				FileResume fileResume = new FileResume(keyFile, FileResume.TYPE_FILE);
+				fileResume.setAbsolutePath(entry.getAbsolutePath());
+				this.snapshotFiles.put(keyFile, fileResume);
 			}
 		}
-		
-		try {
-			FileWriter oFileWriter = new FileWriter(ofile.getAbsoluteFile());
-			BufferedWriter oBufferedWriter = new BufferedWriter(oFileWriter);
-			oBufferedWriter.write("[path]="+this.snapshotPath);
-			oBufferedWriter.newLine();
-			oBufferedWriter.write("[time]="+timeLog);
-			oBufferedWriter.newLine();
-			oBufferedWriter.write("[start_files_block]");
-			oBufferedWriter.newLine();
-				
-			Iterator<String> keySetIterator = this.snapshotFiles.keySet().iterator();
-			while (keySetIterator.hasNext()) {
-			   String key = keySetIterator.next();
-			   FileResume oFileResume = this.snapshotFiles.get(key);
-			   oBufferedWriter.write(oFileResume.getName()+";"+
-					   				oFileResume.getType()+";"+
-					   				oFileResume.getAbsolutePath()+";"+
-					   				oFileResume.getCrc32());
-			   oBufferedWriter.newLine();
-			}
-			
-			oBufferedWriter.write("[end_files_block]");
-			oBufferedWriter.newLine();
-			oBufferedWriter.close();
-			oFileWriter.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}		
 	}
-	
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		
-		Date oInicio = new Date();
-		
-		//String sPath = ".";
-		String sPath = "/Users/Andres/Documents/workspace/csvfix";
-		//String sPath = "/Users/Andres/Documents/workspace";
-		Snapshot oSnapshot = new Snapshot(sPath);
-		oSnapshot.addFileIgnored("build");
-		oSnapshot.loadSnapshot();
-		oSnapshot.refreshSnapshotCRC32();
-		oSnapshot.show();
-		oSnapshot.export();
-		
-		Date oFin = new Date();
-		System.out.println(oFin.getTime()-oInicio.getTime());
-		
+
+	public void refreshSnapshotCRC32() {
+		for (FileResume resume : this.snapshotFiles.values()) {
+			if (resume.getType() == FileResume.TYPE_FILE) {
+				resume.refreshCRC32();
+			}
+		}
 	}
 
 }

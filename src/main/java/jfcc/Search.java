@@ -1,7 +1,6 @@
 package jfcc;
 
 import java.io.PrintWriter;
-import java.util.Date;
 
 public class Search extends AbstractTool {
 
@@ -37,30 +36,14 @@ public class Search extends AbstractTool {
 		out.println("Find:" + countFind);
 	}
 
-	/**
-	 * @param args
-	 */
 	public static void main(String[] args) {
-		Date oInicio = new Date();
-
 		if (args.length >= 2) {
-			String origen = args[0];
-			String searchString = args[1];
-
-			Search oSearch = new Search(origen, searchString);
-			//add file exceptions
-			oSearch.addFileIgnored(".svn"); //svn folder
-
-			oSearch.execute();
-			oSearch.report();
-			//oSearch.export();
-
+			Search tool = new Search(args[0], args[1]);
+			tool.addFileIgnored(".svn");
+			runTimed(() -> { tool.execute(); tool.report(); });
 		} else {
 			System.out.println("usage: jfcc.Search [origen] [Search String]");
 		}
-
-		Date oFin = new Date();
-		System.out.println("End proces time " + (oFin.getTime() - oInicio.getTime()) + "ms");
 	}
 
 }

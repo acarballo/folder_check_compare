@@ -1,8 +1,7 @@
 package jfcc;
 
 import java.io.PrintWriter;
-import java.util.Date;
-import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class Analizer extends AbstractTool {
@@ -18,7 +17,7 @@ public class Analizer extends AbstractTool {
 
 	@Override
 	protected void writeReport(PrintWriter out) {
-		Hashtable<String, Integer> fileTypes = new Hashtable<String, Integer>();
+		Map<String, Integer> fileTypes = new LinkedHashMap<>();
 
 		out.println("Origin Folder:" + this.origin.getPath());
 		out.println("Origin Elements:" + this.origin.getNumElements());
@@ -30,8 +29,7 @@ public class Analizer extends AbstractTool {
 		for (FileResume resume : this.origin.getAll().values()) {
 			String ext = resume.getExtension();
 			if (ext != null) {
-				Integer count = fileTypes.get(ext);
-				fileTypes.put(ext, count == null ? 1 : count + 1);
+				fileTypes.merge(ext, 1, Integer::sum);
 			}
 		}
 
@@ -40,29 +38,14 @@ public class Analizer extends AbstractTool {
 		}
 	}
 
-	/**
-	 * @param args
-	 */
 	public static void main(String[] args) {
-		Date oInicio = new Date();
-
 		if (args.length >= 1) {
-			String origen = args[0];
-
-			Analizer oAnalizer = new Analizer(origen);
-			//add file exceptions
-			oAnalizer.addFileIgnored(".svn"); //svn folder
-
-			oAnalizer.execute();
-			oAnalizer.report();
-			//oAnalizer.export();
-
+			Analizer tool = new Analizer(args[0]);
+			tool.addFileIgnored(".svn");
+			runTimed(() -> { tool.execute(); tool.report(); });
 		} else {
 			System.out.println("usage: jfcc.Analizer [origen]");
 		}
-
-		Date oFin = new Date();
-		System.out.println("End proces time " + (oFin.getTime() - oInicio.getTime()) + "ms");
 	}
 
 }

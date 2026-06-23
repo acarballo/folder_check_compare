@@ -86,4 +86,15 @@ public abstract class AbstractTool {
 		out.println("jfcc v" + Version.VALUE);
 	}
 
+	/**
+	 * El patron de temporizar : ejecuta la accion y muestra el tiempo
+	 * transcurrido en milisegundos.
+	 */
+	protected static void runTimed(Runnable action) {
+		long start = System.currentTimeMillis();
+		action.run();
+		System.out.println("End proces time " + (System.currentTimeMillis() - start) + "ms");
+	}
+
 }
+

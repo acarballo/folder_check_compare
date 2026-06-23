@@ -1,7 +1,6 @@
 package jfcc;
 
 import java.io.PrintWriter;
-import java.util.Date;
 
 public class Comparator extends AbstractTool {
 
@@ -36,7 +35,6 @@ public class Comparator extends AbstractTool {
 		out.println("Destination Folder:" + this.destination.getPath());
 		out.println("Destination Elements:" + this.destination.getNumElements());
 
-		//check updated files
 		out.println();
 		out.println("Check modified elements");
 		out.println("=======================");
@@ -52,28 +50,24 @@ public class Comparator extends AbstractTool {
 		}
 		out.println("modified elements:" + countModified);
 
-		//check new files
 		out.println();
 		out.println("Check new elements (Only Origin)");
 		out.println("================================");
 		for (String key : this.origin.getAll().keySet()) {
 			FileResume originResume = this.origin.getAll().get(key);
-			FileResume destinationResume = this.destination.getAll().get(key);
-			if (destinationResume == null) {
+			if (!this.destination.getAll().containsKey(key)) {
 				countNew++;
 				out.println(originResume.getName());
 			}
 		}
 		out.println("new elements:" + countNew);
 
-		//check deleted files
 		out.println();
 		out.println("Check deleted elements (Only Destination)");
 		out.println("=========================================");
 		for (String key : this.destination.getAll().keySet()) {
 			FileResume destinationResume = this.destination.getAll().get(key);
-			FileResume originResume = this.origin.getAll().get(key);
-			if (originResume == null) {
+			if (!this.origin.getAll().containsKey(key)) {
 				countDeleted++;
 				out.println(destinationResume.getName());
 			}
@@ -82,30 +76,14 @@ public class Comparator extends AbstractTool {
 		out.println();
 	}
 
-	/**
-	 * @param args
-	 */
 	public static void main(String[] args) {
-		Date oInicio = new Date();
-
 		if (args.length >= 2) {
-			String origen = args[0];
-			String destino = args[1];
-
-			Comparator oComparator = new Comparator(origen, destino);
-			//add file exceptions
-			oComparator.addFileIgnored(".svn"); //svn folder
-
-			oComparator.execute();
-			oComparator.report();
-			//oComparator.export();
-
+			Comparator tool = new Comparator(args[0], args[1]);
+			tool.addFileIgnored(".svn");
+			runTimed(() -> { tool.execute(); tool.report(); });
 		} else {
 			System.out.println("usage: jfcc.Comparator [origen] [destino]");
 		}
-
-		Date oFin = new Date();
-		System.out.println("End proces time " + (oFin.getTime() - oInicio.getTime()) + "ms");
 	}
 
 }
