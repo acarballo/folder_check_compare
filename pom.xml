@@ -14,11 +14,12 @@
   <url>https://github.com/acarballo/folder_check_compare</url>
 
   <properties>
-    <maven.compiler.release>11</maven.compiler.release>
+    <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-    <!-- Clase principal por defecto del jar ejecutable (igual que el build.xml original) -->
-    <mainClass>jfcc.Comparator</mainClass>
+    <!-- Clase principal: menu interactivo. Las herramientas siguen siendo
+         invocables directamente con -cp jfcc.jar jfcc.Comparator, etc. -->
+    <mainClass>jfcc.Main</mainClass>
 
     <junit.version>5.10.2</junit.version>
   </properties>

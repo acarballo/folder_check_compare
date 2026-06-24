@@ -87,10 +87,11 @@ public abstract class AbstractTool {
 	}
 
 	/**
-	 * El patron de temporizar : ejecuta la accion y muestra el tiempo
+	 * Mejora 11: el patron de temporizar la ejecucion estaba duplicado en los
+	 * cuatro main(). Se centraliza aqui: ejecuta la accion y muestra el tiempo
 	 * transcurrido en milisegundos.
 	 */
-	protected static void runTimed(Runnable action) {
+	public static void runTimed(Runnable action) {
 		long start = System.currentTimeMillis();
 		action.run();
 		System.out.println("End proces time " + (System.currentTimeMillis() - start) + "ms");
